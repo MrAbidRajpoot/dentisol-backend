@@ -1,22 +1,24 @@
 # Dentisol Backend API
 
-Express.js backend server for handling contact form submissions using Nodemailer with Gmail SMTP.
+Express.js backend server for handling contact form submissions using Nodemailer with Brevo SMTP.
 
 ## Features
 
-- ✅ Contact form email handling via Gmail SMTP
+- ✅ Contact form email handling via Brevo SMTP
 - ✅ HTML email templates
 - ✅ Input validation
 - ✅ Error handling
 - ✅ CORS support
 - ✅ Environment variable configuration
 - ✅ Email headers for better deliverability
+- ✅ Works with serverless deployments (Vercel, etc.)
+- ✅ Free tier: 300 emails/day
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - npm or yarn
-- Gmail account with 2-Step Verification enabled
+- Brevo account (free tier available)
 
 ## Setup Instructions
 
@@ -26,19 +28,16 @@ Express.js backend server for handling contact form submissions using Nodemailer
 npm install
 ```
 
-### 2. Get Gmail App Password
+### 2. Set Up Brevo Account
 
-**Important:** You cannot use your regular Gmail password. You need to generate an App Password.
-
-1. Go to your [Google Account](https://myaccount.google.com)
-2. Click on **Security** in the left sidebar
-3. Under **"Signing in to Google"**, enable **"2-Step Verification"** if not already enabled
-4. After enabling 2-Step Verification, go back to **Security**
-5. Under **"Signing in to Google"**, click on **"App passwords"**
-6. Select **"Mail"** as the app and **"Other (Custom name)"** as the device
-7. Enter **"Dentisol Backend"** as the custom name
-8. Click **"Generate"**
-9. Copy the 16-character password (spaces don't matter - you can include or remove them)
+1. Sign up for a free Brevo account at [brevo.com](https://www.brevo.com)
+   - Free tier: 300 emails/day
+2. Go to **Settings** → **SMTP & API** → **SMTP**
+3. Copy your **SMTP Login** (your Brevo account email)
+4. Generate or copy your **SMTP Key** (if you don't have one, click "Generate")
+5. **Important**: Verify your sender email address in Brevo
+   - Go to **Settings** → **Senders & IP**
+   - Add and verify `info.dentisol@gmail.com` (or your FROM_EMAIL)
 
 ### 3. Configure Environment Variables
 
@@ -47,15 +46,20 @@ npm install
    cp .env.example .env
    ```
 
-2. Edit `.env` and add your Gmail credentials:
+2. Edit `.env` and add your Brevo SMTP credentials:
    ```
-   EMAIL_USER=info.dentisol@gmail.com
-   EMAIL_PASS=your_16_character_app_password_here
+   BREVO_SMTP_USER=your_brevo_email@example.com
+   BREVO_SMTP_KEY=your_brevo_smtp_key_here
    RECIPIENT_EMAIL=info.dentisol@gmail.com
+   FROM_EMAIL=info.dentisol@gmail.com
    FROM_NAME=Dentisol Contact Form
    FRONTEND_URL=http://localhost:3000
    PORT=5000
    ```
+
+3. **For Vercel deployment**, add these same variables in:
+   - Vercel Dashboard → Your Project → Settings → Environment Variables
+   - Make sure to add them for Production, Preview, and Development environments
 
 ### 4. Run the Server
 
@@ -160,11 +164,22 @@ const handleSubmit = async (e) => {
 
 ## Email Configuration
 
-- **From Address**: Set in `EMAIL_USER` (your Gmail address)
+- **From Address**: Set in `FROM_EMAIL` (must be verified in Brevo)
 - **Reply-To**: Automatically set to the user's email address
 - **Recipient**: Set in `RECIPIENT_EMAIL` (where contact form submissions are sent)
 - **Subject**: "Contact Form: [name] wants to reach you"
 - **Headers**: Includes X-Priority and X-Entity-Ref-ID for better deliverability
+- **SMTP**: Brevo SMTP (smtp-relay.brevo.com:587)
+
+## Why Brevo SMTP?
+
+- ✅ Simple SMTP setup (no OAuth2 complexity)
+- ✅ Works reliably in serverless environments (Vercel, AWS Lambda, etc.)
+- ✅ Free tier: 300 emails/day
+- ✅ Easy to use and configure
+- ✅ Good deliverability rates
+- ✅ No IP restrictions
+- ✅ Professional email service
 
 ## Deployment
 
@@ -190,30 +205,39 @@ Make sure to set these environment variables in your hosting platform:
 ## Troubleshooting
 
 ### "Invalid login" or Authentication Error
-- Make sure you're using a **Gmail App Password**, not your regular Gmail password
-- Verify 2-Step Verification is enabled on your Google Account
-- Check that `EMAIL_USER` and `EMAIL_PASS` are correct in `.env`
+- Verify your `BREVO_SMTP_USER` is your Brevo account email
+- Check that `BREVO_SMTP_KEY` is correct (SMTP key, not API key)
 - Ensure there are no extra spaces or quotes in the `.env` file
+- Regenerate your SMTP key in Brevo dashboard if needed
 
-### "Less secure app access" Error
-- Gmail no longer supports "less secure apps"
-- You **must** use an App Password (see Setup Instructions above)
-- Regular passwords will not work
+### "Sender not verified" Error
+- Make sure your `FROM_EMAIL` is verified in Brevo
+- Go to Brevo Dashboard → Settings → Senders & IP
+- Add and verify your sender email address
+- Wait for verification to complete (usually instant)
 
 ### Email Not Sending
 - Check server console for error messages
-- Verify Nodemailer connection on server startup (should see "Nodemailer is ready to send emails")
-- Test your App Password by trying to send a test email
-- Check Gmail account for any security alerts
+- Verify Brevo SMTP credentials are correct
+- Test the endpoint with a simple curl request
+- Check Brevo dashboard for any account issues
+- Verify you haven't exceeded the daily email limit (300/day on free tier)
 
 ### CORS Errors
 - Update `FRONTEND_URL` in `.env` to match your frontend URL
 - Make sure the backend allows requests from your frontend domain
 
+### Vercel Deployment Issues
+- Ensure all environment variables are set in Vercel dashboard
+- Redeploy after adding environment variables
+- Check Vercel function logs for detailed error messages
+- Verify Brevo SMTP credentials are correct
+
 ### Connection Timeout
 - Check your firewall settings
 - Ensure port 587 (SMTP) is not blocked
-- Try using port 465 with `secure: true` if 587 doesn't work
+- Brevo SMTP should work from any IP address
+- Try using port 465 with `secure: true` if 587 doesn't work (update server.js)
 
 ## License
 

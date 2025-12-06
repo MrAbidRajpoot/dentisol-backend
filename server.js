@@ -7,21 +7,26 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize Nodemailer with Gmail SMTP
+// Initialize Nodemailer with Brevo SMTP
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Gmail App Password
+    user: process.env.BREVO_SMTP_USER, // Your Brevo account email
+    pass: process.env.BREVO_SMTP_KEY,  // Brevo SMTP API key
+  },
+  tls: {
+    ciphers: 'SSLv3',
   },
 });
 
 // Verify transporter configuration
 transporter.verify((error, success) => {
   if (error) {
-    console.error('Nodemailer configuration error:', error);
+    console.error('Brevo SMTP configuration error:', error);
   } else {
-    console.log('Nodemailer is ready to send emails');
+    console.log('Brevo SMTP is ready to send emails');
   }
 });
 
@@ -63,7 +68,7 @@ app.post('/api/contact', async (req, res) => {
     // Prepare email content
     const subject = `Contact Form: ${name} wants to reach you`;
     const recipientEmail = process.env.RECIPIENT_EMAIL || 'info.dentisol@gmail.com';
-    const emailUser = process.env.EMAIL_USER || 'info.dentisol@gmail.com';
+    const fromEmail = process.env.FROM_EMAIL || 'info.dentisol@gmail.com';
     const fromName = process.env.FROM_NAME || 'Dentisol Contact Form';
     
     // Generate unique identifier for email tracking
@@ -189,7 +194,7 @@ Reply to this email to respond directly to ${name}.
 
     // Prepare email options
     const mailOptions = {
-      from: `"${fromName}" <${emailUser}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       to: recipientEmail,
       replyTo: email, // User's email as reply-to
       subject: subject,
@@ -202,7 +207,7 @@ Reply to this email to respond directly to ${name}.
       },
     };
 
-    // Send email using Nodemailer
+    // Send email using Nodemailer with Brevo SMTP
     try {
       const info = await transporter.sendMail(mailOptions);
 
