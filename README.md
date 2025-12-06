@@ -224,14 +224,33 @@ Make sure to set these environment variables in your hosting platform:
 - Verify you haven't exceeded the daily email limit (300/day on free tier)
 
 ### CORS Errors
+
+**For Vercel Deployments:**
+- The backend automatically allows all Vercel URLs (`.vercel.app` domains)
+- No additional configuration needed for Vercel preview/production URLs
+- If using a custom domain, add it to `FRONTEND_URL` environment variable
+
+**For Other Deployments:**
 - Update `FRONTEND_URL` in `.env` to match your frontend URL
+- For multiple frontend URLs, use `FRONTEND_URLS` (comma-separated): 
+  ```
+  FRONTEND_URLS=https://example.com,https://www.example.com,https://staging.example.com
+  ```
 - Make sure the backend allows requests from your frontend domain
+
+**Common CORS Issues:**
+- Check browser console for the exact origin being blocked
+- Verify the origin matches what's in your environment variables
+- Ensure `FRONTEND_URL` includes the protocol (`https://` not just the domain)
+- For Vercel, the backend automatically allows all `.vercel.app` domains
 
 ### Vercel Deployment Issues
 - Ensure all environment variables are set in Vercel dashboard
 - Redeploy after adding environment variables
 - Check Vercel function logs for detailed error messages
 - Verify Brevo SMTP credentials are correct
+- **CORS is automatically configured for Vercel** - all `.vercel.app` domains are allowed
+- If using a custom domain, add it to `FRONTEND_URL` environment variable in Vercel
 
 ### Connection Timeout
 - Check your firewall settings

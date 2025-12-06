@@ -36,6 +36,8 @@ const corsOptions = {
     // List of allowed origins
     const allowedOrigins = [
       process.env.FRONTEND_URL || 'http://localhost:3000',
+      // Add multiple frontend URLs if needed (comma-separated)
+      ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : []),
     ].filter(Boolean);
 
     // Allow requests with no origin (like mobile apps, Postman, etc.) in development
@@ -43,10 +45,25 @@ const corsOptions = {
       return callback(null, true);
     }
 
+    // Allow requests with no origin in production (some browsers/proxies don't send origin)
+    if (!origin) {
+      return callback(null, true);
+    }
+
     // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
-    } else {
+    } 
+    // Allow Vercel preview and production URLs
+    else if (origin.includes('.vercel.app') || origin.includes('vercel.app')) {
+      callback(null, true);
+    }
+    // Allow localhost for development
+    else if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      callback(null, true);
+    }
+    else {
+      console.warn('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
