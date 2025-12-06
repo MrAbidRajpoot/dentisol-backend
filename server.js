@@ -31,10 +31,33 @@ transporter.verify((error, success) => {
 });
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    // List of allowed origins
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+    ].filter(Boolean);
+
+    // Allow requests with no origin (like mobile apps, Postman, etc.) in development
+    if (!origin && process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow credentials (cookies, authorization headers)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11) choke on 204
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
