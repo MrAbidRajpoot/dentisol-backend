@@ -1,21 +1,22 @@
 # Dentisol Backend API
 
-Express.js backend server for handling contact form submissions using Resend email service.
+Express.js backend server for handling contact form submissions using Nodemailer with Gmail SMTP.
 
 ## Features
 
-- ✅ Contact form email handling
+- ✅ Contact form email handling via Gmail SMTP
 - ✅ HTML email templates
 - ✅ Input validation
 - ✅ Error handling
 - ✅ CORS support
 - ✅ Environment variable configuration
+- ✅ Email headers for better deliverability
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - npm or yarn
-- Resend account (free tier: 100 emails/day)
+- Gmail account with 2-Step Verification enabled
 
 ## Setup Instructions
 
@@ -25,12 +26,19 @@ Express.js backend server for handling contact form submissions using Resend ema
 npm install
 ```
 
-### 2. Get Resend API Key
+### 2. Get Gmail App Password
 
-1. Sign up at [Resend.com](https://resend.com) (free account)
-2. Go to [API Keys](https://resend.com/api-keys)
-3. Create a new API key
-4. Copy the API key (starts with `re_`)
+**Important:** You cannot use your regular Gmail password. You need to generate an App Password.
+
+1. Go to your [Google Account](https://myaccount.google.com)
+2. Click on **Security** in the left sidebar
+3. Under **"Signing in to Google"**, enable **"2-Step Verification"** if not already enabled
+4. After enabling 2-Step Verification, go back to **Security**
+5. Under **"Signing in to Google"**, click on **"App passwords"**
+6. Select **"Mail"** as the app and **"Other (Custom name)"** as the device
+7. Enter **"Dentisol Backend"** as the custom name
+8. Click **"Generate"**
+9. Copy the 16-character password (spaces don't matter - you can include or remove them)
 
 ### 3. Configure Environment Variables
 
@@ -39,28 +47,17 @@ npm install
    cp .env.example .env
    ```
 
-2. Edit `.env` and add your Resend API key:
+2. Edit `.env` and add your Gmail credentials:
    ```
-   RESEND_API_KEY=re_your_actual_api_key_here
+   EMAIL_USER=info.dentisol@gmail.com
+   EMAIL_PASS=your_16_character_app_password_here
    RECIPIENT_EMAIL=info.dentisol@gmail.com
-   FROM_EMAIL=info.dentisol@gmail.com
    FROM_NAME=Dentisol Contact Form
    FRONTEND_URL=http://localhost:3000
    PORT=5000
    ```
 
-### 4. Verify Email Domain (Important!)
-
-**For production use**, you need to verify your email domain in Resend:
-
-1. Go to [Resend Domains](https://resend.com/domains)
-2. Add your domain (e.g., `dentisol.com`)
-3. Add the DNS records provided by Resend to your domain's DNS settings
-4. Wait for verification (usually takes a few minutes)
-
-**For development/testing**, you can use Resend's test email addresses or verify a single email address.
-
-### 5. Run the Server
+### 4. Run the Server
 
 **Development mode (with auto-reload):**
 ```bash
@@ -163,9 +160,11 @@ const handleSubmit = async (e) => {
 
 ## Email Configuration
 
-- **From Address**: Set in `FROM_EMAIL` (must be verified in Resend)
+- **From Address**: Set in `EMAIL_USER` (your Gmail address)
 - **Reply-To**: Automatically set to the user's email address
 - **Recipient**: Set in `RECIPIENT_EMAIL` (where contact form submissions are sent)
+- **Subject**: "Contact Form: [name] wants to reach you"
+- **Headers**: Includes X-Priority and X-Entity-Ref-ID for better deliverability
 
 ## Deployment
 
@@ -190,22 +189,31 @@ Make sure to set these environment variables in your hosting platform:
 
 ## Troubleshooting
 
-### "Invalid API Key" Error
-- Verify your `RESEND_API_KEY` is correct in `.env`
-- Make sure there are no extra spaces or quotes
+### "Invalid login" or Authentication Error
+- Make sure you're using a **Gmail App Password**, not your regular Gmail password
+- Verify 2-Step Verification is enabled on your Google Account
+- Check that `EMAIL_USER` and `EMAIL_PASS` are correct in `.env`
+- Ensure there are no extra spaces or quotes in the `.env` file
 
-### "Domain not verified" Error
-- Verify your email domain in Resend dashboard
-- For testing, use Resend's test email addresses
+### "Less secure app access" Error
+- Gmail no longer supports "less secure apps"
+- You **must** use an App Password (see Setup Instructions above)
+- Regular passwords will not work
+
+### Email Not Sending
+- Check server console for error messages
+- Verify Nodemailer connection on server startup (should see "Nodemailer is ready to send emails")
+- Test your App Password by trying to send a test email
+- Check Gmail account for any security alerts
 
 ### CORS Errors
 - Update `FRONTEND_URL` in `.env` to match your frontend URL
 - Make sure the backend allows requests from your frontend domain
 
-### Email Not Sending
-- Check Resend dashboard for error logs
-- Verify your API key has the correct permissions
-- Check that your domain/email is verified in Resend
+### Connection Timeout
+- Check your firewall settings
+- Ensure port 587 (SMTP) is not blocked
+- Try using port 465 with `secure: true` if 587 doesn't work
 
 ## License
 

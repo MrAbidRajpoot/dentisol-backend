@@ -1,13 +1,29 @@
 const express = require('express');
 const cors = require('cors');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Nodemailer with Gmail SMTP
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS, // Gmail App Password
+  },
+});
+
+// Verify transporter configuration
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('Nodemailer configuration error:', error);
+  } else {
+    console.log('Nodemailer is ready to send emails');
+  }
+});
 
 // Middleware
 app.use(cors({
@@ -45,10 +61,13 @@ app.post('/api/contact', async (req, res) => {
     }
 
     // Prepare email content
-    const subject = `New Contact Form Submission from ${name}`;
+    const subject = `Contact Form: ${name} wants to reach you`;
     const recipientEmail = process.env.RECIPIENT_EMAIL || 'info.dentisol@gmail.com';
-    const fromEmail = process.env.FROM_EMAIL || 'info.dentisol@gmail.com';
+    const emailUser = process.env.EMAIL_USER || 'info.dentisol@gmail.com';
     const fromName = process.env.FROM_NAME || 'Dentisol Contact Form';
+    
+    // Generate unique identifier for email tracking
+    const emailRefId = uuidv4();
 
     // HTML email template
     const htmlContent = `
@@ -168,32 +187,45 @@ This email was sent from the Dentisol contact form.
 Reply to this email to respond directly to ${name}.
     `;
 
-    // Send email using Resend
-    const { data, error } = await resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
-      to: [recipientEmail],
+    // Prepare email options
+    const mailOptions = {
+      from: `"${fromName}" <${emailUser}>`,
+      to: recipientEmail,
       replyTo: email, // User's email as reply-to
       subject: subject,
       html: htmlContent,
       text: textContent,
-    });
+      headers: {
+        'X-Priority': '1',
+        'X-Entity-Ref-ID': emailRefId,
+        'X-Mailer': 'Dentisol Contact Form',
+      },
+    };
 
-    if (error) {
-      console.error('Resend API Error:', error);
+    // Send email using Nodemailer
+    try {
+      const info = await transporter.sendMail(mailOptions);
+
+      console.log('Email sent successfully:', {
+        messageId: info.messageId,
+        response: info.response,
+        refId: emailRefId
+      });
+
+      // Success response
+      res.status(200).json({
+        success: true,
+        message: 'Your message has been sent successfully! We will get back to you soon.',
+        emailId: info.messageId,
+        refId: emailRefId
+      });
+    } catch (emailError) {
+      console.error('Nodemailer Error:', emailError);
       return res.status(500).json({
         success: false,
         error: 'Failed to send email. Please try again later.'
       });
     }
-
-    console.log('Email sent successfully:', data);
-
-    // Success response
-    res.status(200).json({
-      success: true,
-      message: 'Your message has been sent successfully! We will get back to you soon.',
-      emailId: data?.id
-    });
 
   } catch (error) {
     console.error('Server Error:', error);
